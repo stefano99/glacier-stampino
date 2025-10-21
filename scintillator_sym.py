@@ -2,7 +2,12 @@
 Real-time triple-coincidence scintillator simulator
 Landau pulse shape, 1 MSPS, 8-bit serial output to Arduino (confirm that it works please)
 """
-import serial, struct, time, random, math, argparse
+import math
+import argparse
+import random
+import time
+import struct
+import serial
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -20,14 +25,16 @@ MAX_AMPL    = 220           # 8-bit headroom
 
 # --------- BiExponential shape ---------
 """
-Sinals behave like a biexponential with two characteristic times: rise and fall. The amplitude is set to 150 mV.
-All other possible signals would be higher, so setting any THR level for the smallest 1p.e. signal assures the correct functioning.
+Sinals behave like a biexponential with two characteristic times: rise and fall.
+The amplitude is set to 150 mV. All other possible signals would be higher. 
+Setting any THR level for the smallest 1p.e. signal assures the correct functioning.
 """
+
 t = np.arange(int(round(PULSE_LEN * SAMPLE_NS,0))) * 1e-9
 pulse_shape = np.exp(-t / TAU_FALL) * (1 - np.exp(-t / TAU_RISE))
 pulse_shape = pulse_shape / pulse_shape.max() * 150         # normalise to 150 mV
 
-# --------- Functions --------- 
+# --------- Functions ---------
 def biexp_pulse(ampl):
     """return 8-bit array"""
     return np.clip(ampl * pulse_shape, 0, 255).astype(np.uint8)
@@ -37,12 +44,13 @@ def next_event_time(rate):
     return -math.log(1.0 - random.random()) / rate * 1e9
 
 def main():
+    """Module for the complete real-time signal generator"""
     parser = argparse.ArgumentParser()
     parser.add_argument("-p","--port", default=SERIAL_PORT)
-    parser.add_argument("-s","--singles", type=float, default=SINGLES_RATE, help='Rate of the single signal')
-    parser.add_argument("-t","--triple",  type=float, default=TRIPLE_RATE,  help='Rate of the triplets')
-    parser.add_argument("-j","--jitter",  type=float, default=JITTER_NS,    help='Time between signals in triplets')
-    parser.add_argument("-v", "--verbose", type=bool, default=False,        help='If set to True you get all outputs')
+    parser.add_argument("-s","--singles", type=float, default=SINGLES_RATE, help='Noise rate')
+    parser.add_argument("-t","--triple",  type=float, default=TRIPLE_RATE,  help='Triplets rate')
+    parser.add_argument("-j","--jitter",  type=float, default=JITTER_NS,    help='Triplets jitter')
+    parser.add_argument("-v", "--verbose", type=bool, default=False,        help='True for verbose')
     args = parser.parse_args()
 
     if args.verbose:
